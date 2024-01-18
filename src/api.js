@@ -6,9 +6,12 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const { Configuration, PlaidApi, PlaidEnvironments } = require("plaid");
 const path = require("path");
+const cors = require('cors');
 
 const app = express();
 const router = express.Router();
+
+app.use(cors());
 
 app.use(
   session({ secret: "bosco", saveUninitialized: true, resave: true })
