@@ -17,7 +17,7 @@ app.use(
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-router.get("/", async (req, res) => {
+app.get("/", async (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
