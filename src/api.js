@@ -21,10 +21,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 router.get("/", async (req, res) => {
-  // res.sendFile(path.join(__dirname, "index.html"));
-  res.json({
-    message: "Neuralleap API works"
-  });
+  res.sendFile(path.join(__dirname, "index.html"));
+  // res.json({
+  //   message: "Neuralleap API works"
+  // });
 });
 
 
@@ -73,7 +73,10 @@ router.post("/api/exchange_public_token", async (req, res, next) => {
   // FOR DEMO PURPOSES ONLY
   // Store access_token in DB instead of session storage
   req.session.access_token = exchangeResponse.data.access_token;
-  res.json(true);
+  // res.json(true);
+  res.json({
+    'access_token': exchangeResponse.data.access_token
+  });
 });
 
 // Fetches balance data using the Node client library for Plaid
@@ -83,6 +86,82 @@ router.get("/api/data", async (req, res, next) => {
   res.json({
     Balance: balanceResponse.data,
   });
+});
+
+router.post("/api/data2", async (req, res, next) => {
+  try {
+    const access_token = req.body.access_token;
+    if (!access_token) {
+      return res.status(400).json({ error: "access_token is required" });
+    }
+    const balanceResponse = await client.accountsBalanceGet({ access_token });
+
+    res.json({
+      Balance: balanceResponse.data,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// =======================================
+const endDate = new Date();
+const startDate = new Date();
+startDate.setMonth(endDate.getMonth() - 3);
+
+function formatDate(date) {
+  let day = date.getDate();
+  let month = date.getMonth() + 1;
+  let year = date.getFullYear();
+
+  month = month < 10 ? `0${month}` : month;
+  day = day < 10 ? `0${day}` : day;
+
+  return `${year}-${month}-${day}`;
+}
+
+const formattedStartDate = formatDate(startDate);
+const formattedEndDate = formatDate(endDate);
+
+// =======================================
+
+
+router.post("/api/three_months_transactions", async (req, res, next) => {
+
+  const accountId = req.body.accountId;
+
+  if (!accountId) {
+    return res.status(400).send('Account ID is required');
+  }
+
+  const accountIds = [accountId];
+
+  const access_token = req.body.access_token;
+  if (!access_token) {
+    return res.status(400).json({ error: "access_token is required" });
+  }
+
+  const request = {
+    access_token: access_token,
+    start_date: formattedStartDate,
+    end_date: formattedEndDate,
+    options: {
+      account_ids: accountIds
+    }
+  };
+
+  try {
+    const response = await client.transactionsGet(request);
+    let transactions = response.data.transactions;
+    const total_transactions = response.data.total_transactions;
+
+    res.json(transactions);
+
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).send('An error occurred while fetching transactions');
+  }
 });
 
 
@@ -99,7 +178,7 @@ router.get("/api/transactions", async (req, res, next) => {
   const request = {
     access_token: req.session.access_token,
     start_date: '2018-01-01',
-    end_date: '2024-01-16'
+    end_date: '2024-01-30'
   };
 
   try {
@@ -131,7 +210,7 @@ router.get("/api/transactions", async (req, res, next) => {
 });
 
 router.get("/api/is_account_connected", async (req, res, next) => {
-  return (req.session.access_token ? res.json({ status: true }) : res.json({ status: false}));
+  return (req.session.access_token ? res.json({ status: true }) : res.json({ status: false }));
 });
 
 
@@ -145,5 +224,5 @@ const PORT = process.env.APPPORT || 9000
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`)
-}) 
+})
 
